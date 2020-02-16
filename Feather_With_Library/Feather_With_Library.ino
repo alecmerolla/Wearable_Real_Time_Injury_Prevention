@@ -9,11 +9,17 @@ void setup() {
   }
 
   Serial.print("Initializing SD card...");
-
+  SD.begin(5);
   if (!SD.begin(5)) {
     Serial.println("initialization failed!");
-    while (1);
+    while(!SD.begin(5))
+    {
+      SD.begin(5);
+      Serial.println("Trying SD card again...");
+      delay(200);
+    }
   }
+  
   Serial.println("initialization done.");
 
   pinMode(LED_BUILTIN, OUTPUT);
@@ -32,6 +38,8 @@ void loop() {
     sprintf(file_name, "/testlog.txt");
     wrips.log_orientation(file_name);
     wrips.print_orientation();
+    wrips.calc_deviation(100,100,100);
+    Serial.println("Deviation: " + String(wrips.dev_x()) + ", " + String(wrips.dev_y()) + ", " + String(wrips.dev_z()));
     digitalWrite(LED_BUILTIN, LOW);
     delay(250);
   }
