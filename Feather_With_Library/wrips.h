@@ -19,21 +19,39 @@ class Wrips
     double dev_x();
     double dev_y();
     double dev_z();
+    double set_dev_x(double x);
+    double set_dev_y(double y);
+    double set_dev_z(double z);
+    double dev_ori_x(double x);
+    double dev_ori_y(double y);
+    double dev_ori_z(double z);
+    double to_360(double x);
     unsigned int ms();
+    char isBeep(char x, int piez);
     void event();
     void orientation(sensors_event_t* event);
     void log_orientation(char *file_name);
     void print_orientation();
-    void calc_deviation(double x, double y, double z);
-    
+    void calc_deviation();
+    void button_set_dev();
+
   private:
     Adafruit_BNO055 _bno;
     double _x;
     double _y;
     double _z;
+    //calculated deviation
     double _dev_x;
     double _dev_y;
     double _dev_z;
+    //allowable deviation
+    double _set_dev_x;
+    double _set_dev_y;
+    double _set_dev_z;
+    //angle to deviate from
+    double _dev_ori_x;
+    double _dev_ori_y;
+    double _dev_ori_z;
     unsigned int _ms;
 };
 
