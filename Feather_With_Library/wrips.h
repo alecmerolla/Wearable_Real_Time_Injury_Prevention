@@ -9,6 +9,8 @@
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 
+#define buff_size 150
+
 class Wrips
 {
   public:
@@ -40,6 +42,11 @@ class Wrips
     double _x;
     double _y;
     double _z;
+    unsigned int _buff;
+    double _x_arr[buff_size];
+    double _y_arr[buff_size];
+    double _z_arr[buff_size];
+    unsigned int _ms_arr[buff_size];
     //calculated deviation
     double _dev_x;
     double _dev_y;

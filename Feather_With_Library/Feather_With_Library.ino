@@ -24,6 +24,7 @@ void IRAM_ATTR button_press(void)
 void setup() {
   // Open serial communications and wait for port to open:
   Serial.begin(115200);
+  //Serial.begin(57600);
   while (!Serial) {
     ; // wait for serial port to connect.
   }
@@ -54,11 +55,13 @@ void loop() {
   char file_name[256];
 
   while (1) {
-    digitalWrite(LED_BUILTIN, HIGH);
+//    digitalWrite(LED_BUILTIN, HIGH);
     wrips.event();
 
     sprintf(file_name, "/testlog.txt");
+    digitalWrite(LED_BUILTIN, HIGH);
     wrips.log_orientation(file_name);
+    digitalWrite(LED_BUILTIN, LOW);
     wrips.print_orientation();
     wrips.calc_deviation();
     /*
@@ -90,7 +93,7 @@ void loop() {
     wrips.isBeep('x', piezo);
 
     Serial.println("Deviation: " + String(wrips.dev_x()) + ", " + String(wrips.dev_y()) + ", " + String(wrips.dev_z()));
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(250);
+//    digitalWrite(LED_BUILTIN, LOW);
+    delay(100);
   }
 }

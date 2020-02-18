@@ -30,6 +30,8 @@ Wrips::Wrips(Adafruit_BNO055 bno)
   _dev_ori_y = _y;
   _dev_ori_z = _z;
 
+  _buff = 0;
+
   if (!_bno.begin())
   {
     /* There was a problem detecting the BNO055 ... check your connections */
@@ -158,14 +160,30 @@ double Wrips::to_360(double x)
 //note when opening file you must use /test.txt
 void Wrips::log_orientation(char *file_name)
 {
-  File file;
-  file = SD.open(file_name, FILE_APPEND);
-  if (file) {
-    file.println(String(_ms) + ", " + String(_x) + ", " + String(_y) + ", " + String(_z));
-    file.close();
+  if (_buff < buff_size)
+  {
+    _x_arr[_buff] = _x;
+    _y_arr[_buff] = _y;
+    _z_arr[_buff] = _z;
+    _ms_arr[_buff] = _ms;
+    _buff++;
   }
-  else {
-    Serial.println("error opening " + String(file_name));
+  else
+  {
+    File file;
+    file = SD.open(file_name, FILE_APPEND);
+    for (int i = 0; i < buff_size; i++)
+    {
+      if (file) {
+        file.println(String(_ms_arr[i]) + ", " + String(_x_arr[i]) + ", "
+                     + String(_y_arr[i]) + ", " + String(_z_arr[i]));
+      }
+      else {
+        Serial.println("error opening " + String(file_name));
+      }
+    }
+    file.close();
+    _buff = 0;
   }
 }
 
@@ -174,17 +192,17 @@ void Wrips::print_orientation(void)
   Serial.println(String(_ms) + ", " + String(_x) + ", " + String(_y) + ", " + String(_z));
 }
 
-//MUST FIX
-//calculate the smallest deviation away from angle
+//calculate the min deviation away from angle
 //returns positive value
 void Wrips::calc_deviation(void)
 {
-  if (_dev_ori_x >= _x)_dev_x = abs(_dev_ori_x - _x);
-  else _dev_x = abs(_x - _dev_ori_x);
-  if (_dev_ori_y >= _y)_dev_y = abs(_dev_ori_y - _y);
-  else _dev_y = abs(_y - _dev_ori_y);
-  if (_dev_ori_z >= _z)_dev_z = abs(_dev_ori_z - _z);
-  else _dev_z = abs(_z - _dev_ori_z);
+  double distance;
+  distance = abs(_x - _dev_ori_x);
+  _dev_x = min(distance, 360.0 - distance);
+  distance = abs(_y - _dev_ori_y);
+  _dev_y = min(distance, 360.0 - distance);
+  distance = abs(_z - _dev_ori_z);
+  _dev_z = min(distance, 360.0 - distance);
 }
 
 //check if deviation is greater than threshold
