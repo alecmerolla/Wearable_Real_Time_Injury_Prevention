@@ -31,7 +31,10 @@ Wrips::Wrips(Adafruit_BNO055 bno)
   _dev_ori_z = _z;
 
   _buff = 0;
+}
 
+void Wrips::start(void)
+{
   if (!_bno.begin())
   {
     /* There was a problem detecting the BNO055 ... check your connections */
@@ -209,7 +212,7 @@ void Wrips::calc_deviation(void)
 char Wrips::isBeep(char x, int piez)
 {
   if (x == 'x' || x == 'X') {
-    if (_dev_x > _set_dev_x && _set_dev_x >= 0) {
+    if (_dev_x >= _set_dev_x && _set_dev_x >= 0) {
       Serial.println("Deviation detected on X-axis");
       digitalWrite(piez, HIGH);
       return 'x';
@@ -217,7 +220,7 @@ char Wrips::isBeep(char x, int piez)
     else digitalWrite(piez, LOW);
   }
   else if (x == 'y' || x == 'Y') {
-    if (_dev_y > _set_dev_y && _set_dev_y >= 0) {
+    if (_dev_y >= _set_dev_y && _set_dev_y >= 0) {
       Serial.println("Deviation detected on Y-axis");
       digitalWrite(piez, HIGH);
       return 'y';
@@ -225,7 +228,7 @@ char Wrips::isBeep(char x, int piez)
     else digitalWrite(piez, LOW);
   }
   else if (x == 'z' || x == 'Z') {
-    if (_dev_z > _set_dev_z && _set_dev_z >= 0) {
+    if (_dev_z >= _set_dev_z && _set_dev_z >= 0) {
       Serial.println("Deviation detected on Z-axis");
       digitalWrite(piez, HIGH);
       return 'z';
@@ -244,7 +247,5 @@ void Wrips::button_set_dev(void)
   Serial.println("Deviation origins set [x,y,z]: " + String(_dev_ori_x) + ", "
                  + String(_dev_ori_y) + ", " + String(_dev_ori_z) + ", ");
 }
-
-
 
 

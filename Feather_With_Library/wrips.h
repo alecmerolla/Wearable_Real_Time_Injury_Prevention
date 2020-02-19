@@ -8,6 +8,8 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 #define buff_size 150
 
@@ -15,6 +17,7 @@ class Wrips
 {
   public:
     Wrips(Adafruit_BNO055 bno);
+    void start();
     double x();
     double y();
     double z();
