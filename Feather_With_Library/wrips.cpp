@@ -18,6 +18,7 @@ Wrips::Wrips(Adafruit_BNO055 bno)
   _y = -100000;
   _z = -100000;
   _ms = 9999999;
+  _isAvail = 0;
 
   // for angle deviation
   _dev_x = _x;
@@ -42,6 +43,12 @@ void Wrips::start(void)
     while (1);
   }
   delay(1000);
+}
+
+// Check that new data is available
+int Wrips::isAvail(void)
+{
+  return _isAvail;
 }
 
 //functions to return private var
@@ -122,6 +129,7 @@ void Wrips::event(void)
   sensors_event_t orientationData;
   _bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
   orientation(&orientationData);
+  _isAvail = 1;
 }
 
 void Wrips::orientation(sensors_event_t* event)
@@ -188,6 +196,7 @@ void Wrips::log_orientation(char *file_name)
     file.close();
     _buff = 0;
   }
+  _isAvail = 0;
 }
 
 void Wrips::print_orientation(void)

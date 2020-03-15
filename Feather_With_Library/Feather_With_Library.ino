@@ -6,18 +6,115 @@
 #define devY 15.0
 #define devY 15.0
 
+#include <WiFi.h>
+#include <ESPAsyncWebServer.h>
+#include <SPIFFS.h>
 #include "wrips.h"
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define OLED_RESET     -1
+#define DELAY 100
+
+bool button_trigged = false;
+
+void TaskProcessSensor( void *pvParameters);
+void TaskProcessLog( void *pvParameters);
+void IRAM_ATTR button_press(void);
+void display_init(void);
+void oled_update(void);
+void button_set_dev(void);
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 Wrips wrips(Adafruit_BNO055(55, 0x28));
 //Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-bool button_trigged = false;
+
+void setup() {
+  // Open serial communications and wait for port to open:
+  Serial.begin(115200);
+  //Serial.begin(57600);
+  while (!Serial) {
+    ; // wait for serial port to connect.
+  }
+
+  Serial.print("Initializing SD card...");
+  SD.begin(SD_cs);
+  if (!SD.begin(SD_cs)) {
+    Serial.println("initialization failed!");
+    while (!SD.begin(SD_cs))
+    {
+      SD.begin(SD_cs);
+      Serial.println("Trying SD card again...");
+      delay(200);
+    }
+  }
+
+  attachInterrupt(digitalPinToInterrupt(button), button_press, FALLING);
+  pinMode(LED_BUILTIN, OUTPUT);
+  //  pinMode(piezo, OUTPUT);
+
+  //  display_init();
+  wrips.start();
+  wrips.set_dev_x(devX);
+
+  xTaskCreatePinnedToCore(
+    TaskProcessSensor
+    ,  "TaskProcessSensor"
+    ,  4096
+    ,  NULL
+    ,  1  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
+    ,  NULL
+    ,  0 ); //Arduino core to run on, be careful with core 0 for ESP32 firmware protocols
+
+  xTaskCreatePinnedToCore(
+    TaskProcessLog
+    ,  "TaskProcessLog"
+    ,  4096
+    ,  NULL
+    ,  1
+    ,  NULL
+    ,  1);
+
+  Serial.println("initialization done.");
+}
+
+void loop() {
+  //  Wrips wrips(Adafruit_BNO055(55, 0x28));
+  delay(99999999);
+}
+
+void TaskProcessSensor(void *pvParameters)  // This is a task.
+{
+  (void) pvParameters;
+  display_init();
+  while (1) {
+    wrips.event();
+    wrips.print_orientation();
+    wrips.calc_deviation();
+    oled_update();
+    wrips.isBeep('x', piezo);
+    button_set_dev();
+    Serial.println("Deviation: " + String(wrips.dev_x()) + ", " + String(wrips.dev_y()) + ", " + String(wrips.dev_z()));
+    vTaskDelay(DELAY);
+  }
+}
+
+void TaskProcessLog(void *pvParameters)  // This is a task.
+{
+  (void) pvParameters;
+  while (1) {
+    if (wrips.isAvail()) {
+      char file_name[256];
+      sprintf(file_name, "/testlog.txt");
+      digitalWrite(LED_BUILTIN, HIGH);
+//      wrips.log_orientation(file_name);
+      vTaskDelay(500);
+      digitalWrite(LED_BUILTIN, LOW);
+    }
+  }
+}
 
 //Interrupt function
 //IRAM_ATTR runs in ram instead of flash for faster access
@@ -26,6 +123,16 @@ void IRAM_ATTR button_press(void)
   if (button_trigged == false)
   {
     button_trigged = true;
+  }
+}
+
+void button_set_dev(void)
+{
+  if (button_trigged == true)
+  {
+    wrips.button_set_dev();
+    digitalWrite(piezo, HIGH);
+    button_trigged = false;
   }
 }
 
@@ -53,65 +160,4 @@ void oled_update(void)
           wrips.x(), wrips.y(), wrips.z(), wrips.dev_x(), wrips.dev_y(), wrips.dev_z());
   display.println(F(str));
   display.display();
-}
-
-void setup() {
-  // Open serial communications and wait for port to open:
-  Serial.begin(115200);
-  //Serial.begin(57600);
-  while (!Serial) {
-    ; // wait for serial port to connect.
-  }
-
-  Serial.print("Initializing SD card...");
-  SD.begin(SD_cs);
-  if (!SD.begin(SD_cs)) {
-    Serial.println("initialization failed!");
-    while (!SD.begin(SD_cs))
-    {
-      SD.begin(SD_cs);
-      Serial.println("Trying SD card again...");
-      delay(200);
-    }
-  }
-
-  attachInterrupt(digitalPinToInterrupt(button), button_press, FALLING);
-
-  //  display_init();
-
-  Serial.println("initialization done.");
-
-  pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(piezo, OUTPUT);
-}
-
-void loop() {
-  //  Wrips wrips(Adafruit_BNO055(55, 0x28));
-  wrips.start();
-  wrips.set_dev_x(devX);
-  char file_name[256];
-  display_init();
-
-  while (1) {
-    wrips.event();
-
-    sprintf(file_name, "/testlog.txt");
-    digitalWrite(LED_BUILTIN, HIGH);
-    wrips.log_orientation(file_name);
-    digitalWrite(LED_BUILTIN, LOW);
-    wrips.print_orientation();
-    wrips.calc_deviation();
-    oled_update();
-
-    if (button_trigged == true)
-    {
-      wrips.button_set_dev();
-      digitalWrite(piezo, HIGH);
-      button_trigged = false;
-    }
-    wrips.isBeep('x', piezo);
-
-    Serial.println("Deviation: " + String(wrips.dev_x()) + ", " + String(wrips.dev_y()) + ", " + String(wrips.dev_z()));
-    delay(100);
-  }
 }

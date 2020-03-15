@@ -31,6 +31,7 @@ class Wrips
     double dev_ori_y(double y);
     double dev_ori_z(double z);
     double to_360(double x);
+    int isAvail();
     unsigned int ms();
     char isBeep(char x, int piez);
     void event();
@@ -49,6 +50,7 @@ class Wrips
     double _x_arr[buff_size];
     double _y_arr[buff_size];
     double _z_arr[buff_size];
+    int _isAvail;
     unsigned int _ms_arr[buff_size];
     //calculated deviation
     double _dev_x;
