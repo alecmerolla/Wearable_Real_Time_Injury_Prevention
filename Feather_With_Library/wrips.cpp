@@ -123,13 +123,58 @@ double Wrips::dev_ori_z(double z)
   return _dev_ori_z;
 }
 
+/*
 
-void Wrips::event(void)
-{
+  void Wrips::event(void)
+  {
   sensors_event_t orientationData;
   _bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
   orientation(&orientationData);
   _isAvail = 1;
+  }
+
+*/
+
+void Wrips::event(void)
+{
+  sensors_event_t event;
+  _bno.getEvent(&event);
+  imu::Quaternion q = _bno.getQuat();
+  q.normalize();
+  double test = q.x() * q.y() + q.z() * q.w();
+  if (test > 0.499) { // singularity at north pole
+    _x = 2 * atan2(q.x(), q.w());
+    _y = M_PI / 2;
+    _z = 0;
+    return;
+  }
+  if (test < -0.499) { // singularity at south pole
+    _x = -2 * atan2(q.x(), q.w());
+    _y = - M_PI / 2;
+    _z = 0;
+    return;
+  }
+  double sqx = q.x() * q.x();
+  double sqy = q.y() * q.y();
+  double sqz = q.z() * q.z();
+  _x = atan2(2 * q.y() * q.w() - 2 * q.x() * q.z() , 1 - 2 * sqy - 2 * sqz);
+  _y = asin(2 * test);
+  _z = atan2(2 * q.x() * q.w() - 2 * q.y() * q.z() , 1 - 2 * sqx - 2 * sqz);
+  _x = 180 / M_PI * _x;
+  _y = 180 / M_PI * _y;
+  _z = 180 / M_PI * _z;
+  //  float temp = q.x();  q.x() = -q.y();  q.y() = temp;
+  //  q.z() = -q.z();
+  //  Serial.print("W: = ");
+  //  Serial.println(q.w());
+  //  imu::Vector<3> euler = q.toEuler();
+  //  _x = -180/M_PI * euler.x();
+  //  _y = -180/M_PI * euler.y();
+  //  _z = 180/M_PI * euler.z();
+  //  _ms = millis();
+  //_x = to_360(_x);
+  //  _y = to_360(_y);
+  //  _z = to_360(_z);
 }
 
 void Wrips::orientation(sensors_event_t* event)
@@ -163,7 +208,7 @@ void Wrips::orientation(sensors_event_t* event)
 double Wrips::to_360(double x)
 {
   if (x < 0) {
-    return abs(x) + 180.0;
+    return 360.0 - abs(x);
   }
   else return x;
 }

@@ -4,6 +4,7 @@ var WIDTH = window.innerWidth;
 var HEIGHT = window.innerHeight;
 
 var SPEED = 0.01;
+var coord = [1, 2, 3];
 
 function init() {
     scene = new THREE.Scene();
@@ -59,9 +60,12 @@ function assembleShapes() {
 }
 
 function rotateCube() {
-    cube.rotation.x -= SPEED * 2;
-    cube.rotation.y -= SPEED;
-    cube.rotation.z -= SPEED * 3;
+    // cube.rotation.x -= SPEED * 2;
+    // cube.rotation.y -= SPEED;
+    // cube.rotation.z -= SPEED * 3;
+    cube.rotation.x -= coord(0);
+    cube.rotation.y -= coord(1);
+    cube.rotation.z -= coord(2);
 }
 
 function rotateCube2() {
@@ -82,9 +86,10 @@ setInterval(function ( ) {
     xhttp.send();
     xhttp.onreadystatechange = function() {
       if (this.readyState == 4 && this.status == 200) {
-        var x = (new Date()).getTime(),
-            y = parseFloat(this.responseText);
-          chartP.series[0].addPoint([x, y], true, false, true);
+        //var x = (new Date()).getTime(),
+          //  y = parseFloat(this.responseText);
+        coord = Array.from(this.responseText.split(", "), Number);
+          //chartP.series[0].addPoint([x, y], true, false, true);
       }
     };
   }, 800 ) ;

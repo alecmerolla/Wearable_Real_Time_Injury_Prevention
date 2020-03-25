@@ -81,8 +81,8 @@
             // cube.rotation.x -= SPEED * 2;
             // cube.rotation.y -= SPEED;
             // cube.rotation.z -= SPEED * 3;
-            cube.rotation.x = coord[0];
-            cube.rotation.y = coord[1];
+            cube.rotation.x = coord[1];
+            cube.rotation.y = coord[0];
             cube.rotation.z = coord[2];
         }
 
@@ -113,7 +113,7 @@
                     //chartP.series[0].addPoint([x, y], true, false, true);
                 }
             };
-        }, 800);
+        }, 100);
         
         function offsetCube2() {
             var r = 50 / 2 + 12;
@@ -132,7 +132,7 @@
             requestAnimationFrame(render);
             rotateCube();
             //rotateCube2();
-            rotateSphere();
+            //rotateSphere();
             offsetCube2();
             offsetSphere();
             renderer.render(scene, camera);
