@@ -21,6 +21,10 @@ class Wrips
     double x();
     double y();
     double z();
+    double q_x();
+    double q_y();
+    double q_z();
+    double q_w();
     double dev_x();
     double dev_y();
     double dev_z();
@@ -46,10 +50,18 @@ class Wrips
     double _x;
     double _y;
     double _z;
+    double _qx;
+    double _qy;
+    double _qz;
+    double _qw;
     unsigned int _buff;
     double _x_arr[buff_size];
     double _y_arr[buff_size];
     double _z_arr[buff_size];
+    double _qx_arr[buff_size];
+    double _qy_arr[buff_size];
+    double _qz_arr[buff_size];
+    double _qw_arr[buff_size];
     int _isAvail;
     unsigned int _ms_arr[buff_size];
     //calculated deviation

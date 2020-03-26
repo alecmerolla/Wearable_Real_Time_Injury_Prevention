@@ -15,13 +15,14 @@
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define OLED_RESET     -1
-#define DELAY 100
+#define DELAY 200
 
 // network credentials
 const char* ssid = "wavelengths";
 const char* password = "mikemona100";
 
 bool button_trigged = false;
+int isSD = 0;
 
 void TaskProcessSensor( void *pvParameters);
 void TaskProcessLog( void *pvParameters);
@@ -69,25 +70,25 @@ void setup() {
     ,  1  // Priority, with 3 (configMAX_PRIORITIES - 1) being the highest, and 0 being the lowest.
     ,  NULL
     ,  0 ); //Arduino core to run on, be careful with core 0 for ESP32 firmware protocols
-  /*
+
   xTaskCreatePinnedToCore(
     TaskProcessLog
     ,  "TaskProcessLog"
-    ,  4096
+    ,  8192
     ,  NULL
     ,  1
     ,  NULL
     ,  1);
+  /*
+    xTaskCreatePinnedToCore(
+     TaskProcessWebserver
+     ,  "TaskProcessWebserver"
+     ,  16384
+     ,  NULL
+     ,  1
+     ,  NULL
+     ,  1);
   */
-  xTaskCreatePinnedToCore(
-    TaskProcessWebserver
-    ,  "TaskProcessWebserver"
-    ,  16384
-    ,  NULL
-    ,  1
-    ,  NULL
-    ,  1);
-
   Serial.println("initialization done.");
 }
 
@@ -159,14 +160,15 @@ void TaskProcessLog(void *pvParameters)  // This is a task.
       delay(200);
     }
   }
+  isSD++;
   while (1) {
     if (wrips.isAvail()) {
       char file_name[256];
-      sprintf(file_name, "/testlog.txt");
+      sprintf(file_name, "/testlog1.txt");
       digitalWrite(LED_BUILTIN, HIGH);
       wrips.log_orientation(file_name);
-      vTaskDelay(500);
       digitalWrite(LED_BUILTIN, LOW);
+      isSD++;
     }
   }
 }
@@ -216,8 +218,10 @@ void oled_update(void)
   display.setTextSize(1);
   sprintf(str, "WRIPS ECE-1  %d\n", wrips.ms());
   display.println(F(str));
-  sprintf(str, "X:%.1lf\nY:%.1lf\nZ:%.1lf\ndevX:%.1lf\ndevY:%.1lf\ndevZ:%.1lf\n",
-          wrips.x(), wrips.y(), wrips.z(), wrips.dev_x(), wrips.dev_y(), wrips.dev_z());
+  //  sprintf(str, "X:%.1lf\nY:%.1lf\nZ:%.1lf\ndevX:%.1lf\ndevY:%.1lf\ndevZ:%.1lf\n",
+  //          wrips.x(), wrips.y(), wrips.z(), wrips.dev_x(), wrips.dev_y(), wrips.dev_z());
+  sprintf(str, "QX:%.1lf\nQY:%.1lf\nQZ:%.1lf\nQW:%.1lf\nSD: %d\n",
+          wrips.q_x(), wrips.q_y(), wrips.q_z(), wrips.q_w(), isSD);
   display.println(F(str));
   display.display();
 }

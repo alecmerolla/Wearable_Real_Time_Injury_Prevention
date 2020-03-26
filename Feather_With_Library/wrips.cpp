@@ -17,6 +17,10 @@ Wrips::Wrips(Adafruit_BNO055 bno)
   _x = -100000;
   _y = -100000;
   _z = -100000;
+  _qx = -100000;
+  _qy = -100000;
+  _qz = -100000;
+  _qw = -100000;
   _ms = 9999999;
   _isAvail = 0;
 
@@ -65,6 +69,26 @@ double Wrips::y(void)
 double Wrips::z(void)
 {
   return _z;
+}
+
+double Wrips::q_x(void)
+{
+  return _qx;
+}
+
+double Wrips::q_y(void)
+{
+  return _qy;
+}
+
+double Wrips::q_z(void)
+{
+  return _qz;
+}
+
+double Wrips::q_w(void)
+{
+  return _qw;
 }
 
 unsigned int Wrips::ms(void)
@@ -134,7 +158,7 @@ double Wrips::dev_ori_z(double z)
   }
 
 */
-
+/*
 void Wrips::event(void)
 {
   sensors_event_t event;
@@ -176,6 +200,21 @@ void Wrips::event(void)
   //  _y = to_360(_y);
   //  _z = to_360(_z);
 }
+*/
+void Wrips::event(void)
+{
+  sensors_event_t event;
+  _bno.getEvent(&event);
+  imu::Quaternion q = _bno.getQuat();
+  q.normalize();
+  _qx = q.x();
+  _qy = q.y();
+  _qz = q.z();
+  _qw = q.w();
+  _ms = millis();
+  _isAvail = 1;
+}
+
 
 void Wrips::orientation(sensors_event_t* event)
 {
@@ -213,6 +252,7 @@ double Wrips::to_360(double x)
   else return x;
 }
 
+/*
 //note when opening file you must use /test.txt
 void Wrips::log_orientation(char *file_name)
 {
@@ -243,10 +283,47 @@ void Wrips::log_orientation(char *file_name)
   }
   _isAvail = 0;
 }
+*/
+void Wrips::log_orientation(char *file_name)
+{
+  if (_buff < buff_size)
+  {
+    _qx_arr[_buff] = _qx;
+    _qy_arr[_buff] = _qy;
+    _qz_arr[_buff] = _qz;
+    _qw_arr[_buff] = _qw;
+    _ms_arr[_buff] = _ms;
+    _buff++;
+  }
+  else
+  {
+    File file;
+    file = SD.open(file_name, FILE_APPEND);
+    while (!file)
+    {
+      file = SD.open(file_name, FILE_APPEND);
+    }
+    for (int i = 0; i < buff_size; i++)
+    {
+      if (file) {
+        file.println(String(_ms_arr[i]) + ", " + String(_qx_arr[i]) + ", "
+                     + String(_qy_arr[i]) + ", " + String(_qz_arr[i]) + ", " + String(_qw_arr[i]));
+      }
+      else {
+        Serial.println("error opening " + String(file_name));
+      }
+    }
+    file.close();
+    _buff = 0;
+  }
+  _isAvail = 0;
+}
 
 void Wrips::print_orientation(void)
 {
   Serial.println(String(_ms) + ", " + String(_x) + ", " + String(_y) + ", " + String(_z));
+  Serial.println(String(_ms) + ", " + String(_qx) + ", "
+                     + String(_qy) + ", " + String(_qz) + ", " + String(_qw));
 }
 
 //calculate the min deviation away from angle
