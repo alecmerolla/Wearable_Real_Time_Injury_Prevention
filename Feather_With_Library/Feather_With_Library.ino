@@ -1,6 +1,6 @@
 //PIN definitions
 #define SD_cs 5
-#define piezo 32
+#define piezo 12
 #define button 15
 #define devX 15.0
 #define devY 15.0
@@ -28,8 +28,8 @@ void TaskProcessSensor( void *pvParameters);
 void TaskProcessLog( void *pvParameters);
 void TaskProcessWebserver(void *pvParameters);
 void IRAM_ATTR button_press(void);
-void display_init(void);
-void oled_update(void);
+//void display_init(void);
+//void oled_update(void);
 void button_set_dev(void);
 String get_data(void);
 
@@ -41,22 +41,23 @@ IPAddress local_IP(192, 168, 0, 225);
 IPAddress gateway(192, 168, 0, 1);
 IPAddress subnet(255, 255, 0, 0);
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+//Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-Wrips wrips(Adafruit_BNO055(55, 0x28));
+Wrips wrips(Adafruit_BNO055(55, 0x28), Adafruit_BNO055(55, 0x29));
 //Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 
 void setup() {
   // Open serial communications and wait for port to open:
   Serial.begin(115200);
-  //Serial.begin(57600);
+  //  Serial.begin(9600);
   while (!Serial) {
     ; // wait for serial port to connect.
   }
 
   attachInterrupt(digitalPinToInterrupt(button), button_press, FALLING);
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(piezo, OUTPUT);
 
   //  display_init();
   wrips.start();
@@ -71,24 +72,25 @@ void setup() {
     ,  NULL
     ,  0 ); //Arduino core to run on, be careful with core 0 for ESP32 firmware protocols
 
+  /*
+    xTaskCreatePinnedToCore(
+      TaskProcessLog
+      ,  "TaskProcessLog"
+      ,  8192
+      ,  NULL
+      ,  1
+      ,  NULL
+      ,  1);
+  */
   xTaskCreatePinnedToCore(
-    TaskProcessLog
-    ,  "TaskProcessLog"
-    ,  8192
+    TaskProcessWebserver
+    ,  "TaskProcessWebserver"
+    ,  16384
     ,  NULL
     ,  1
     ,  NULL
     ,  1);
-  /*
-    xTaskCreatePinnedToCore(
-     TaskProcessWebserver
-     ,  "TaskProcessWebserver"
-     ,  16384
-     ,  NULL
-     ,  1
-     ,  NULL
-     ,  1);
-  */
+
   Serial.println("initialization done.");
 }
 
@@ -122,6 +124,12 @@ void TaskProcessWebserver(void *pvParameters)
   server.on("/data", HTTP_GET, [](AsyncWebServerRequest * request) {
     request->send_P(200, "text/plain", get_data().c_str());
   });
+  server.on("/begin", HTTP_GET, [](AsyncWebServerRequest * request) {
+    request->send_P(200, "text/plain", wrips.begin_exercise().c_str());
+  });
+  server.on("/end", HTTP_GET, [](AsyncWebServerRequest * request) {
+    request->send_P(200, "text/plain", wrips.end_exercise().c_str());
+  });
 
   // Start server
   server.begin();
@@ -133,15 +141,16 @@ void TaskProcessWebserver(void *pvParameters)
 void TaskProcessSensor(void *pvParameters)
 {
   (void) pvParameters;
-  display_init();
+  //  display_init();
   while (1) {
     wrips.event();
     wrips.print_orientation();
     wrips.calc_deviation();
-    oled_update();
-    wrips.isBeep('x', piezo);
+    //    oled_update();
+    if (wrips.check_exercise(piezo) == 1)
+      wrips.isBeep('x', piezo);
     button_set_dev();
-    Serial.println("Deviation: " + String(wrips.dev_x()) + ", " + String(wrips.dev_y()) + ", " + String(wrips.dev_z()));
+    //    Serial.println("Deviation: " + String(wrips.dev_x()) + ", " + String(wrips.dev_y()) + ", " + String(wrips.dev_z()));
     vTaskDelay(DELAY);
   }
 }
@@ -163,10 +172,12 @@ void TaskProcessLog(void *pvParameters)  // This is a task.
   isSD++;
   while (1) {
     if (wrips.isAvail()) {
-      char file_name[256];
-      sprintf(file_name, "/testlog1.txt");
+      char imu_file[256];
+      char emg_file[256];
+      sprintf(imu_file, "/imulog.txt");
+      sprintf(emg_file, "/emglog.txt");
       digitalWrite(LED_BUILTIN, HIGH);
-      wrips.log_orientation(file_name);
+      wrips.log_data(imu_file, emg_file);
       digitalWrite(LED_BUILTIN, LOW);
       isSD++;
     }
@@ -184,8 +195,9 @@ void IRAM_ATTR button_press(void)
 }
 
 String get_data(void) {
-  return String(wrips.x()) + ", " + String(wrips.y()) + ", "
-         + String(wrips.z());
+  return String(wrips.ms()) + ", " + String(wrips.x()) + ", " + String(wrips.y()) + ", "
+         + String(wrips.z()) + ", " + String(wrips.emg1()) + ", " + String(wrips.emg2())
+         +  ", " + String(wrips.emg3()) + ", " + String(wrips.emg4());
 }
 
 void button_set_dev(void)
@@ -197,19 +209,20 @@ void button_set_dev(void)
     button_trigged = false;
   }
 }
-
-void display_init(void)
-{
+/*
+  void display_init(void)
+  {
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x32
     Serial.println(F("SSD1306 allocation failed"));
     for (;;); // Don't proceed, loop forever
   }
   display.clearDisplay();
   delay(100);
-}
-
-void oled_update(void)
-{
+  }
+*/
+/*
+  void oled_update(void)
+  {
   char str[256];
   display.clearDisplay();
   display.setTextSize(2); // Draw 2X-scale text
@@ -218,10 +231,11 @@ void oled_update(void)
   display.setTextSize(1);
   sprintf(str, "WRIPS ECE-1  %d\n", wrips.ms());
   display.println(F(str));
-  //  sprintf(str, "X:%.1lf\nY:%.1lf\nZ:%.1lf\ndevX:%.1lf\ndevY:%.1lf\ndevZ:%.1lf\n",
-  //          wrips.x(), wrips.y(), wrips.z(), wrips.dev_x(), wrips.dev_y(), wrips.dev_z());
-  sprintf(str, "QX:%.1lf\nQY:%.1lf\nQZ:%.1lf\nQW:%.1lf\nSD: %d\n",
-          wrips.q_x(), wrips.q_y(), wrips.q_z(), wrips.q_w(), isSD);
+    sprintf(str, "X:%.1lf\nY:%.1lf\nZ:%.1lf\ndevX:%.1lf\ndevY:%.1lf\ndevZ:%.1lf\n",
+            wrips.x(), wrips.y(), wrips.z(), wrips.dev_x(), wrips.dev_y(), wrips.dev_z());
+  //  sprintf(str, "QX:%.1lf\nQY:%.1lf\nQZ:%.1lf\nQW:%.1lf\nSD: %d\n",
+  //          wrips.q_x(), wrips.q_y(), wrips.q_z(), wrips.q_w(), isSD);
   display.println(F(str));
   display.display();
-}
+  }
+*/
